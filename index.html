@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cherri AI - Verification</title>
+  <style>
+    :root {
+      --primary: #ffb7c5;
+      --primary-dark: #e8889c;
+      --accent: #ff6f91;
+      --bg-start: #fff5f7;
+      --bg-end: #ffe4e9;
+      --text: #4a2e35;
+      --glass: rgba(255, 255, 255, 0.75);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      color: var(--text);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #petals-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .card {
+      position: relative;
+      z-index: 2;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border: 2px solid rgba(255, 183, 197, 0.4);
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 16px 40px rgba(232, 136, 156, 0.2);
+      text-align: center;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #7a525d;
+      margin-bottom: 28px;
+      line-height: 1.4;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input[type="email"] {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1.5px solid var(--primary);
+      outline: none;
+      font-size: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      transition: all 0.3s ease;
+    }
+
+    input[type="email"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(255, 111, 145, 0.2);
+    }
+
+    .otp-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .otp-input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 1.5px solid var(--primary);
+      background: rgba(255, 255, 255, 0.9);
+      outline: none;
+    }
+
+    .otp-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(255, 111, 145, 0.2);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--primary-dark), var(--accent));
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(255, 111, 145, 0.3);
+      transition: opacity 0.2s ease;
+    }
+
+    .btn:hover { opacity: 0.95; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .step { display: none; }
+    .step.active { display: block; }
+    .status-msg { margin-top: 14px; font-size: 0.85rem; }
+    .status-msg.error { color: #d93856; }
+    .status-msg.success { color: #2e7d32; }
+  </style>
+</head>
+<body>
+
+  <canvas id="petals-canvas"></canvas>
+
+  <div class="card">
+    <div class="logo">🌸 Cherri AI</div>
+
+    <!-- STEP 1: Enter Email -->
+    <div id="step-1" class="step active">
+      <p class="subtitle">Enter your email so we can send you a code.</p>
+      <form id="email-form">
+        <div class="input-group">
+          <label for="user-email">Email Address</label>
+          <input type="email" id="user-email" placeholder="name@example.com" required>
+        </div>
+        <button type="submit" id="send-btn" class="btn">Send Code</button>
+      </form>
+    </div>
+
+    <!-- STEP 2: Enter Verification Code -->
+    <div id="step-2" class="step">
+      <p class="subtitle">
+        Enter the 6-digit code sent to <b id="target-email"></b>.<br>
+        <span style="font-size: 0.85rem; color: #a37582;">It may take up to 1 minute to fully send.</span>
+      </p>
+      <div class="otp-container">
+        <input type="text" maxlength="1" class="otp-input" />
+        <input type="text" maxlength="1" class="otp-input" />
+        <input type="text" maxlength="1" class="otp-input" />
+        <input type="text" maxlength="1" class="otp-input" />
+        <input type="text" maxlength="1" class="otp-input" />
+        <input type="text" maxlength="1" class="otp-input" />
+      </div>
+      <button id="verify-btn" class="btn">Verify Code</button>
+    </div>
+
+    <!-- STEP 3: Redirecting -->
+    <div id="step-3" class="step">
+      <p class="subtitle">✨ Verified Successfully!</p>
+      <h3 style="color: var(--accent);">Redirecting to Cherri AI...</h3>
+    </div>
+
+    <div id="status" class="status-msg"></div>
+  </div>
+
+  <script>
+    // --- CONFIGURATION ---
+    const GOOGLE_SHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby847tdUpmP12Twj7rWO6-KIHZ7uXmakTs1UFPi_h5O-vVEUzKy9FoN5kUynxLvkBJ4/exec";
+    const REDIRECT_URL = "https://cdn.jsdelivr.net/gh/cherriunblocked/svg@main/index.svg";
+
+    let generatedCode = "";
+
+    // 1. Foolproof Form Submission Handler
+    document.getElementById('email-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const emailInput = document.getElementById('user-email');
+      const email = emailInput ? emailInput.value : '';
+      const sendBtn = document.getElementById('send-btn');
+      const status = document.getElementById('status');
+
+      if (!email) return false;
+
+      sendBtn.disabled = true;
+      status.className = "status-msg";
+      status.innerText = "Processing...";
+
+      // Generate random 6-digit code
+      generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Send to Google Sheet via fetch
+      fetch(GOOGLE_SHEET_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          code: generatedCode
+        })
+      }).then(() => {
+        // Switch to Step 2 smoothly
+        document.getElementById('target-email').innerText = email;
+        document.getElementById('step-1').classList.remove('active');
+        document.getElementById('step-2').classList.add('active');
+        status.innerText = "";
+        
+        // Focus the first OTP box
+        document.querySelectorAll('.otp-input')[0].focus();
+      }).catch((err) => {
+        console.error(err);
+        status.className = "status-msg error";
+        status.innerText = "Error sending code. Please try again.";
+        sendBtn.disabled = false;
+      });
+
+      return false;
+    });
+
+    // 2. OTP Input Handling with Copy/Paste Support & Auto-Verification
+    const otpInputs = document.querySelectorAll('.otp-input');
+    
+    otpInputs.forEach((input, idx) => {
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text').replace(/\D/g, '');
+        
+        for (let i = 0; i < Math.min(pasteData.length, otpInputs.length); i++) {
+          otpInputs[i].value = pasteData[i];
+        }
+        
+        const lastIdx = Math.min(pasteData.length - 1, otpInputs.length - 1);
+        otpInputs[lastIdx].focus();
+
+        let enteredCode = "";
+        otpInputs.forEach(i => enteredCode += i.value);
+        if (enteredCode.length === 6) {
+          processVerification();
+        }
+      });
+
+      input.addEventListener('input', (e) => {
+        const val = e.target.value.replace(/\D/g, '');
+        e.target.value = val;
+
+        if (val.length === 1 && idx < otpInputs.length - 1) {
+          otpInputs[idx + 1].focus();
+        }
+
+        let enteredCode = "";
+        otpInputs.forEach(i => enteredCode += i.value);
+        if (enteredCode.length === 6) {
+          processVerification();
+        }
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+          otpInputs[idx - 1].focus();
+        }
+      });
+    });
+
+    // 3. Strict Verification & Redirect Handler
+    function processVerification() {
+      let enteredCode = "";
+      otpInputs.forEach(i => enteredCode += i.value);
+      const status = document.getElementById('status');
+
+      if (enteredCode === generatedCode) {
+        status.className = "status-msg success";
+        status.innerText = "Verified! Redirecting...";
+
+        document.getElementById('step-2').classList.remove('active');
+        document.getElementById('step-3').classList.add('active');
+        
+        setTimeout(() => {
+          window.location.href = REDIRECT_URL;
+        }, 800);
+      } else {
+        status.className = "status-msg error";
+        status.innerText = "Incorrect code. Please try again.";
+        
+        otpInputs.forEach(i => i.value = "");
+        otpInputs[0].focus();
+      }
+    }
+
+    document.getElementById('verify-btn').addEventListener('click', processVerification);
+
+    // 4. Floating Sakura Petals Animation Canvas
+    const canvas = document.getElementById('petals-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const petals = Array.from({ length: 30 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 8 + 6,
+      speedY: Math.random() * 1.5 + 0.5,
+      speedX: Math.random() * 1 - 0.5,
+      angle: Math.random() * 360
+    }));
+
+    function animatePetals() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      petals.forEach(p => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.angle += 0.02;
+        if (p.y > canvas.height) p.y = -10;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.x < 0) p.x = canvas.width;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        ctx.fillStyle = '#ffb7c5';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size, p.size / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+      requestAnimationFrame(animatePetals);
+    }
+    animatePetals();
+  </script>
+</body>
+</html>
